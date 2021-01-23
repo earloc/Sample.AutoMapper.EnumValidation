@@ -34,17 +34,6 @@ namespace Sample.AutoMapper.EnumValidation
         public Destination Enum { get; set; }
     }
 
-
-
-    public class SampleProfile : Profile
-    {
-        public SampleProfile()
-        {
-            CreateMap<SourceType, DestinationType>();
-        }
-    }
-
-
     public class Tests
     {
 
