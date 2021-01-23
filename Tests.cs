@@ -56,6 +56,7 @@ namespace Sample.AutoMapper.EnumValidation
         {
             mapperConfig = new MapperConfiguration(config =>
             {
+                config.CreateMap<SourceType, DestinationType>();
             });
 
             mapper = mapperConfig.CreateMapper();
@@ -74,7 +75,12 @@ namespace Sample.AutoMapper.EnumValidation
             var destination = mapper.Map<DestinationType>(source);
 
             destination.Should().NotBeNull("mapping should have succeeded");
-            destination.Name.Should().Be(source.Name, "Name should have been mapped");
+            destination.Name.Should().Be(source.Name, "name should have been mapped");
+
+
+            var isDestinationEnumDefined = Enum.IsDefined(typeof(Destination), destination.Enum);
+
+            isDestinationEnumDefined.Should().BeTrue("what should we do with this value, when not?");
         }
 
         [Fact]
