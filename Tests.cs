@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Xunit;
 using System.Linq;
 using FluentAssertions;
+using AutoMapper.Extensions.EnumMapping;
 
 namespace Sample.AutoMapper.EnumValidation
 {
@@ -46,6 +47,17 @@ namespace Sample.AutoMapper.EnumValidation
             mapperConfig = new MapperConfiguration(config =>
             {
                 config.CreateMap<SourceType, DestinationType>();
+
+                config.Advanced.Validator(context => {
+
+                    if (!context.Types.DestinationType.IsEnum) return;
+                    if (!context.Types.SourceType.IsEnum) return;
+                    if (context.TypeMap is not null) return;
+
+                    throw new AutoMapperConfigurationException($"this.CreateMap<{context.Types.SourceType},{context.Types.DestinationType}>().ConvertUsingEnumMapping();");
+                });
+
+                config.EnableEnumMappingValidation();
             });
 
             mapper = mapperConfig.CreateMapper();
