@@ -48,6 +48,8 @@ namespace Sample.AutoMapper.EnumValidation
             {
                 config.CreateMap<SourceType, DestinationType>();
 
+                config.CreateMap<Source, Destination>().ConvertUsingEnumMapping();
+
                 config.Advanced.Validator(context => {
 
                     if (!context.Types.DestinationType.IsEnum) return;
