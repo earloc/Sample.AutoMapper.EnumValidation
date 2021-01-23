@@ -17,6 +17,7 @@ namespace Sample.AutoMapper.EnumValidation
 
     public enum Destination
     {
+        C,
         A,
         B
     }
@@ -48,7 +49,7 @@ namespace Sample.AutoMapper.EnumValidation
             {
                 config.CreateMap<SourceType, DestinationType>();
 
-                config.CreateMap<Source, Destination>().ConvertUsingEnumMapping();
+                config.CreateMap<Source, Destination>().ConvertUsingEnumMapping(opt => opt.MapByName());
 
                 config.Advanced.Validator(context => {
 
@@ -84,6 +85,12 @@ namespace Sample.AutoMapper.EnumValidation
             var isDestinationEnumDefined = Enum.IsDefined(typeof(Destination), destination.Enum);
 
             isDestinationEnumDefined.Should().BeTrue("what should we do with this value, when not?");
+
+            var sourceStringValue = source.Enum.ToString();
+            var destinationStringValue = destination.Enum.ToString();
+
+            destinationStringValue.Should().Be(sourceStringValue, "there is a semantic-error, otherwise");
+
         }
 
         [Fact]
