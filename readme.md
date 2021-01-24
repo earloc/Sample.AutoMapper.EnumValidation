@@ -162,7 +162,7 @@ The steps involved are
 4. ensure maps are valid
 5. adapt changes in enums, or mapping logic (whatever best fits)
     > this can be cumbersome and needs extra attention, depending on the issues dsicovered by this approach
-6. rince and repeat
+6. rinse and repeat
 > Examples below use xUnit. Use whatever you might have at hands.
 
 
@@ -262,7 +262,7 @@ AutoMapper.AutoMapperConfigurationException : Missing enum mapping from Sample.A
 There you go, AutoMapper discovered a missing enum-value.
 What´s to do now heavily depends on your solution and cannot be covered in a SO-post. So take actions to mitigate, then.
 
-## 6. rince and repeat
+## 6. rinse and repeat
 Go back to 3. until all issues are solved.
 
 From then on, you should have a saftey-net in place, that should prevent you from falling into that kind of trap in the future.
