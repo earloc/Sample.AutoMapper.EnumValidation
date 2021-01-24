@@ -94,7 +94,9 @@ var c = mapper.Map<DestinationType>(new SourceType {
 var d = mapper.Map<DestinationType>(new SourceType {
     Name = "C", Enum = Source.D
 ); 
-//throws, as there is no valid numerical representation of "D" in Destination
+//d is { 
+//  Name = "C", Enum = "3" <-- ❗ wtf, are you serious?
+//}
 
 ```
 
@@ -265,6 +267,7 @@ Go back to 3. until all issues are solved.
 
 From then on, you should have a saftey-net in place, that should prevent you from falling into that kind of trap in the future.
 
+>However, note that mapping **per-name** instead of **per-value** *might* have a negative impact performance-wise. That should definetley be taken into account when applying this kind of change to your code-base. But with all those inter-layer-mappings present I would guess a possible bottleneck is in another castle, Mario ;)
 
 
 
