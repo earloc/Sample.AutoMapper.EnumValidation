@@ -139,7 +139,7 @@ Which then would validate even enum-to-enum mappings.
 
 As our team previously did not (need to) configure AutoMapper with maps for every enum-to-enum mapping (as was the case for dynamic-maps in previous-versions of AutoMapper), we´re a bit lost on how to efficiently and deterministically discover every map needed to be configured this way. Especially, as we´re dealing with possibly a couple of dozens of such cases per api (and per layer).
 
-How could we possibly get to the point, where we have validated and adapted our existing code-base, as well as further preventing this kind of dumbery in the first place
+How could we possibly get to the point, where we have validated and adapted our existing code-base, as well as further preventing this kind of dumbery in the first place?
 
 
 [AutoMapper.Extensions.EnumMapping]:(https://docs.automapper.org/en/stable/Enum-Mapping.html)
