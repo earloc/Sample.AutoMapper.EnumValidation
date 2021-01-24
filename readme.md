@@ -151,12 +151,13 @@ How could we possibly get to the point, where we have validated and adapted our 
 # Leverage custom validation to discover missing mappings during test-time
 
 Ok, now this approach leverages a multi-phased analysis, best fitted into an unit-test (which may already be present in your solution(s), nevertheless).
-It´s not a golden gun to magically solve all your issues (possibly) prevalent, but puts you into a very tight dev-loop
+It´s not a golden gun to magically solve all your issues which may be prevalent, but puts you into a very tight dev-loop which should help clean up things.
+Period.
 
 
 
 The steps involved are
-1. enable Validation of your AutoMapper-Configuration
+1. enable validation of your AutoMapper-Configuration
 2. use AutoMapper custom-validation to discover missing type maps
 3. add and configure missing type-maps
 4. ensure maps are valid
@@ -176,7 +177,7 @@ var mapperConfig = new MapperConfiguration(config =>
 
 ```
 
-## 1. enable Validation of your AutoMapper-Configuration
+## 1. enable validation of your AutoMapper-Configuration
 Somewhere within your test-suit, ensure you are validating your AutoMapper configuration:
 ```C#
 
