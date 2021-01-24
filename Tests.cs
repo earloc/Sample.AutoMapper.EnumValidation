@@ -8,19 +8,9 @@ using AutoMapper.Extensions.EnumMapping;
 
 namespace Sample.AutoMapper.EnumValidation
 {
-    public enum Source
-    {
-        A,
-        B,
-        C
-    }
+    public enum Source { A, B, C, D }
 
-    public enum Destination
-    {
-        C,
-        A,
-        B
-    }
+    public enum Destination { A, C, B }
 
 
     class SourceType
@@ -30,7 +20,6 @@ namespace Sample.AutoMapper.EnumValidation
     }
 
     class DestinationType
-
     {
         public string Name { get; set; }
         public Destination Enum { get; set; }
@@ -38,7 +27,6 @@ namespace Sample.AutoMapper.EnumValidation
 
     public class Tests
     {
-
         public static IEnumerable<object[]> Values = Enum.GetValues(typeof(Source)).Cast<Source>().Select(_ => new object [] { _ });
 
         private readonly MapperConfiguration mapperConfig;
@@ -57,7 +45,9 @@ namespace Sample.AutoMapper.EnumValidation
                     if (!context.Types.SourceType.IsEnum) return;
                     if (context.TypeMap is not null) return;
 
-                    throw new AutoMapperConfigurationException($"this.CreateMap<{context.Types.SourceType},{context.Types.DestinationType}>().ConvertUsingEnumMapping();");
+                    var message = $"config.CreateMap<{context.Types.SourceType}, {context.Types.DestinationType}>().ConvertUsingEnumMapping(opt => opt.MapByName());";
+
+                    throw new AutoMapperConfigurationException(message);
                 });
 
                 config.EnableEnumMappingValidation();
