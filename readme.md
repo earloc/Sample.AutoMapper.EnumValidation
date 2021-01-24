@@ -157,12 +157,12 @@ Period.
 
 
 The steps involved are
-1. enable validation of your AutoMapper-Configuration
+1. enable validation of your AutoMapper-configuration
 2. use AutoMapper custom-validation to discover missing type maps
 3. add and configure missing type-maps
 4. ensure maps are valid
 5. adapt changes in enums, or mapping logic (whatever best fits)
-    > this can be cumbersome and needs extra attention, depending on the issues dsicovered by this approach
+    > this can be cumbersome and needs extra attention, depending on the issues discovered by this approach
 6. rinse and repeat
 > Examples below use xUnit. Use whatever you might have at hands.
 
@@ -178,7 +178,7 @@ var mapperConfig = new MapperConfiguration(config =>
 ```
 
 ## 1. enable validation of your AutoMapper-Configuration
-Somewhere within your test-suit, ensure you are validating your AutoMapper configuration:
+Somewhere within your test-suit, ensure you are validating your AutoMapper-configuration:
 ```C#
 
 [Fact]
@@ -209,9 +209,9 @@ mapperConfig = new MapperConfiguration(config =>
 ```
 
 
-this does a couple of things:
+This does a couple of things:
 1. look for mappings, that map **from** an enum **to** an enum
-2. which have no type-map associated to them (that is, where "generated" by automapper itself and hence are lacking an explicit ```CreateMap``` call)
+2. which have no type-map associated to them (that is, they were "generated" by AutoMapper itself and hence are lacking an explicit ```CreateMap``` call)
 ```C#
     if (!context.Types.DestinationType.IsEnum) return;
     if (!context.Types.SourceType.IsEnum) return;
@@ -219,7 +219,7 @@ this does a couple of things:
 ```
 
 
-3. raise an error, which message is the equivalent of the actual call missing to ```CreateMap```
+3. Raise an error, which message is the equivalent of the actual call missing to ```CreateMap```
 ```C#
 var message = $"config.CreateMap<{context.Types.SourceType}, {context.Types.DestinationType}>().ConvertUsingEnumMapping(opt => opt.MapByName());";
 
@@ -228,7 +228,7 @@ throw new AutoMapperConfigurationException(message);
 
 ## 3. add and configure missing type-maps
 
-re-running our previous test, which should fail now, now should output something like this:
+Re-running our previous test, which should fail now, should output something like this:
 
 ```
 AutoMapper.AutoMapperConfigurationException : config.CreateMap<Sample.AutoMapper.EnumValidation.Source, Sample.AutoMapper.EnumValidation.Destination>().ConvertUsingEnumMapping(opt => opt.MapByName());
@@ -243,7 +243,7 @@ For this post I´m just putting it below the existing one:
 ```C#
 
 config.CreateMap<SourceType, DestinationType>();
-config.CreateMap<{context.Types.SourceType}, {context.Types.DestinationType}>().ConvertUsingEnumMapping(opt => opt.MapByName());
+config.CreateMap<Sample.AutoMapper.EnumValidation.Source, Sample.AutoMapper.EnumValidation.Destination>().ConvertUsingEnumMapping(opt => opt.MapByName());
 
 ```
 
@@ -261,7 +261,7 @@ AutoMapper.AutoMapperConfigurationException : Missing enum mapping from Sample.A
 ```
 
 There you go, AutoMapper discovered a missing enum-value.
-What´s to do now heavily depends on your solution and cannot be covered in a SO-post. So take actions to mitigate, then.
+What´s to do now heavily depends on your solution and cannot be covered in a SO-post. So take appropriate actions to mitigate.
 
 ## 6. rinse and repeat
 Go back to 3. until all issues are solved.
