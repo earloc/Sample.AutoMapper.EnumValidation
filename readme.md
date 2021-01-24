@@ -92,10 +92,10 @@ var c = mapper.Map<DestinationType>(new SourceType {
 //}
 
 var d = mapper.Map<DestinationType>(new SourceType {
-    Name = "C", Enum = Source.D
+    Name = "D", Enum = Source.D
 ); 
 //d is { 
-//  Name = "C", Enum = "3" <-- ❗ wtf, are you serious?
+//  Name = "D", Enum = "3" <-- ❗ wtf, are you serious?
 //}
 
 ```
