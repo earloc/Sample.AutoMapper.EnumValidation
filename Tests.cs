@@ -5,24 +5,23 @@ using Xunit;
 using System.Linq;
 using FluentAssertions;
 using AutoMapper.Extensions.EnumMapping;
+using Xunit.Abstractions;
 
 namespace Sample.AutoMapper.EnumValidation
 {
-    public enum Source { A, B, C, D }
+    public enum Source { A, B, C, D, Executer, A1, B2, C3 }
 
-    public enum Destination { A, C, B }
+    public enum Destination { c, b, X, Y, A, Executor }
 
 
     class SourceType
     {
-        public string Name { get; set; }
-        public Source Enum { get; set; }
+        public Source[] Enums { get; set; }
     }
 
     class DestinationType
     {
-        public string Name { get; set; }
-        public Destination Enum { get; set; }
+        public Destination[] Enums { get; set; }
     }
 
     public class Tests
@@ -31,7 +30,9 @@ namespace Sample.AutoMapper.EnumValidation
 
         private readonly MapperConfiguration mapperConfig;
         private readonly IMapper mapper;
-        public Tests()
+        private readonly ITestOutputHelper testOutput;
+
+        public Tests(ITestOutputHelper testOutput)
         {
             mapperConfig = new MapperConfiguration(config =>
             {
@@ -39,8 +40,8 @@ namespace Sample.AutoMapper.EnumValidation
 
                 config.CreateMap<Source, Destination>().ConvertUsingEnumMapping(opt => opt.MapByName());
 
-                config.Advanced.Validator(context => {
-
+                config.Advanced.Validator(context =>
+                {
                     if (!context.Types.DestinationType.IsEnum) return;
                     if (!context.Types.SourceType.IsEnum) return;
                     if (context.TypeMap is not null) return;
@@ -54,34 +55,47 @@ namespace Sample.AutoMapper.EnumValidation
             });
 
             mapper = mapperConfig.CreateMapper();
+            this.testOutput = testOutput;
         }
 
-        [Theory]
-        [MemberData(nameof(Values))]
-        public void CanMapSourceToDestination(Source value)
+        [Fact]
+        public void ShowcaseTheProblems()
         {
-            var source = new SourceType()
+            var problematicMapper = new MapperConfiguration(config =>
             {
-                Name = Guid.NewGuid().ToString(),
-                Enum = value
-            };
+                config.CreateMap<SourceType, DestinationType>();
+            }).CreateMapper();
 
-            var destination = mapper.Map<DestinationType>(source);
+            var destination = problematicMapper.Map<DestinationType>(new SourceType()
+            {
+                Enums = new []
+                {
+                    Source.A,
+                    Source.B,
+                    Source.C,
+                    Source.D,
+                    Source.Executer,
+                    Source.A1,
+                    Source.B2,
+                    Source.C3
+                }
+            });
 
-            destination.Should().NotBeNull("mapping should have succeeded");
-            destination.Name.Should().Be(source.Name, "name should have been mapped");
-
-
-            var isDestinationEnumDefined = Enum.IsDefined(typeof(Destination), destination.Enum);
-
-            isDestinationEnumDefined.Should().BeTrue("what should we do with this value, when not?");
-
-            var sourceStringValue = source.Enum.ToString();
-            var destinationStringValue = destination.Enum.ToString();
-
-            destinationStringValue.Should().Be(sourceStringValue, "there is a semantic-error, otherwise");
-
+            var mappedValues = destination.Enums.Select(x => x.ToString()).ToArray();
+            
+            testOutput.WriteLine(string.Join(Environment.NewLine, mappedValues));
+            /*  
+                Source.A            => A           <- ok
+                Source.B            => B           <- ok
+                Source.C            => C           <- ok
+                Source.D            => Y           <- whoops
+                Source.Executer     => A           <- wait, what?
+                Source.A1           => Executor    <- nah
+                Source.B2           => 6           <- wtf?
+                Source.C3           => 7           <- wth?
+             */
         }
+
 
         [Fact]
         public void MapperConfigurationIsValid() => mapperConfig.AssertConfigurationIsValid();

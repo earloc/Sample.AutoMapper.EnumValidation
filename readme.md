@@ -1,9 +1,10 @@
-# How to discover missing type-maps for mapping enum to enum in AutoMapper?
+# How to discover missing type-maps for enum-to-enum mappings in AutoMapper?
 
 >Ok folks, this is a rather long question, where I´m trying my best to describe the current situation and provide some meaningful context, before I´m comming to my actual question.
 
 ## TL;DR;
-I need a way to identify missing type-maps of mappings from enum-to-enum-properties in AutoMapper, so that I can configure to use mapping **per-name** instead of AutoMapper´s default behavior of mapping **per-value** (which is, using the internal integer-representation of an enum).
+I need a way to identify invalid enum-to-enum mappings, which might cause runtime-issues, as their definitions diverged over the time.
+
 
 ## Some Context
 So my team and I are maintaining this rather complex set of REST-APIs...complex at least when it comes down to the actual object-graphs involved.
@@ -24,32 +25,32 @@ Boiling this down, this incorporates at least the following layers per API (top-
 
 Additionally, all those layers maintain their own representation of the various models. Often, those are 1:1 representation, just in another namespace. Sometimes there are more significant differences in between these layers. It depends...
 
-To reduce boiler-plate when communicating between these layers, we´re falling back on [AutoMapper] most of the time (hate it or love it).
+To reduce boiler-plate when communicating between these layers, we´re falling back on [AutoMapper](1) most of the time (hate it or love it).
 
 ## The problem:
 As we evolve our overall system, we more and more noticed problems when mapping enum-to-enum properties within the various representations of the models.
-Sometimes it´s because some dev just forgot to add a new enum-value in one of the layers, sometimes we re-generated an Open-API based generated client, etc., which then leads to out-of-sync definitions of those enums. 
-Another issue happens, if, for some reason, these enums are par member-wise, but have another ordering or naming, hence internal representation of the actual enum value. This can get really nasty, especially when we remember how AutoMapper handles enum-to-enum-mappings per default: per Value.
+Sometimes it´s because some dev just forgot to add a new enum-value in one of the layers, sometimes we re-generated an Open-API based generated client, etc., which then leads to out-of-sync definitions of those enums. The primary issue is, that a source enum may have more values then the target enum.
+Another issue might occur, when there are slight differences in the naming, e.g. Executer vs. Executor
+
 
 Let´s say we have this (very very over-simplified) model-representations
 
 ```C#
 
-public enum Source { A, B, C, D }
+    public enum Source { A, B, C, D, Executer, A1, B2, C3 } // more values than below
 
-public enum Destination { A, C, B }
+    public enum Destination { C, B, X, Y, A, Executor }  //fewer values, different ordering, no D, but X, Y and a Typo
 
-class SourceType
-{
-    public string Name { get; set; }
-    public Source Enum { get; set; }
-}
 
-class DestinationType
-{
-    public string Name { get; set; }
-    public Destination Enum { get; set; }
-}
+    class SourceType
+    {
+        public Source[] Enums { get; set; }
+    }
+
+    class DestinationType
+    {
+        public Destination[] Enums { get; set; }
+    }
 
 ```
 
@@ -58,50 +59,52 @@ Now let´s say our AutoMapper config looks something like this:
 
 ```C#
 
-var mapperConfig = new MapperConfiguration(config =>
+var problematicMapper = new MapperConfiguration(config =>
 {
     config.CreateMap<SourceType, DestinationType>();
-});
+}).CreateMapper();
 
 
 ```
 
-So mapping the following models is kind of a jeopardy, semantic-wise (or at least offers some very odd fun while debugging). 
+So mapping the following model is kind of a jeopardy, semantic-wise (or at least offers some very odd fun while debugging). 
 
 
 ```C#
-var a = mapper.Map<DestinationType>(new SourceType {
-    Name = "A", Enum = Source.A
-); 
-//a is { 
-//  Name = "A", Enum = "A" <-- ✔️ looks good
-//}
+    var destination = problematicMapper.Map<DestinationType>(new SourceType()
+    {
+        Enums = new []
+        {
+            Source.A,
+            Source.B,
+            Source.C,
+            Source.D,
+            Source.Executer,
+            Source.A1,
+            Source.B2,
+            Source.C3
+        }
+    });
 
-var b = mapper.Map<DestinationType>(new SourceType {
-    Name = "B", Enum = Source.B
-); 
-//b is { 
-//  Name = "B", Enum = "C" <-- ❗ possible semantic inconsistency
-//}
-
-var c = mapper.Map<DestinationType>(new SourceType {
-    Name = "C", Enum = Source.C
-); 
-//c is { 
-//  Name = "C", Enum = "B" <-- ❗ possible semantic inconsistency
-//}
-
-var d = mapper.Map<DestinationType>(new SourceType {
-    Name = "D", Enum = Source.D
-); 
-//d is { 
-//  Name = "D", Enum = "3" <-- ❗ wtf, are you serious?
-//}
+    var mappedValues = destination.Enums.Select(x => x.ToString()).ToArray();
+    
+    testOutput.WriteLine(string.Join(Environment.NewLine, mappedValues));
+    /*  
+        Source.A            => A           <- ✔️ ok
+        Source.B            => b           <- ✔️ok
+        Source.C            => c           <- ✔️ok
+        Source.D            => Y           <- 🤷‍♀️ whoops
+        Source.Executer     => A           <- 🧏‍♂️ wait, what?
+        Source.A1           => Executor    <- 🙊 nah
+        Source.B2           => 6           <- 🙉 wtf?
+        Source.C3           => 7           <- 🙈 wth?
+        */
 
 ```
 
-Fewer fun can be observed, when this ultimately causes some nasty production-bugs, which also may have more or less serious business-impact - especially when this kind of issue only happens during run-time, rather than test- and/or build-time.
+> bare with me, as some situations here are staged and possibly more extreme than found in reality. Just wanted to point out some weird behavior, even with AutoMapper trying to gracefully handle most cases, like the re-orderings or different casings. Currently, we are facing either more values in the source-enum, or slightly differences in naming / typos
 
+Fewer fun can be observed, when this ultimately causes some nasty production-bugs, which also may have more or less serious business-impact - especially when this kind of issue only happens during run-time, rather than test- and/or build-time.
 
 Additionally, the problem is not exclusive to n-tier-ish architectures, but could also be an issue in orthogonal/onion-/clean-ish-architecture styles (wheras in such cases it should be more likely that such value-types would be placed somewhere in the center of the APIs, rather than on every corner / outer-ring /adapter-layer or whatever the current terminology is)
 
@@ -142,7 +145,7 @@ As our team previously did not (need to) configure AutoMapper with maps for ever
 How could we possibly get to the point, where we have validated and adapted our existing code-base, as well as further preventing this kind of dumbery in the first place?
 
 
-[AutoMapper.Extensions.EnumMapping]:(https://docs.automapper.org/en/stable/Enum-Mapping.html)
+[1]:(https://docs.automapper.org/en/stable/Enum-Mapping.html)
 
 
 
@@ -236,7 +239,7 @@ AutoMapper.AutoMapperConfigurationException : config.CreateMap<Sample.AutoMapper
 
 And boom, there you go. The missing type-map configuration call on a silver-plate.
 
-Now copy that line and place it somwhere suitable withing your AutoMapper-configuration.
+Now copy that line and place it somewhere suitable withing your AutoMapper-configuration.
 
 For this post I´m just putting it below the existing one:
 
@@ -255,25 +258,31 @@ Re-run the test from above, which should fail now, too, as there are incompatibl
 The output should look something like this:
 
 ```
-AutoMapper.AutoMapperConfigurationException : Missing enum mapping from Sample.AutoMapper.EnumValidation.Source to Sample.AutoMapper.EnumValidation.Destination based on Name
+    AutoMapper.AutoMapperConfigurationException : Missing enum mapping from Sample.AutoMapper.EnumValidation.Source to Sample.AutoMapper.EnumValidation.Destination based on Name
     The following source values are not mapped:
+     - B
+     - C
      - D
+     - Executer
+     - A1
+     - B2
+     - C3
 ```
 
-There you go, AutoMapper discovered a missing enum-value.
+There you go, AutoMapper discovered missing or un-mappable enum-values.
+> note that we lost automatic handling of differences in casing.
+
 What´s to do now heavily depends on your solution and cannot be covered in a SO-post. So take appropriate actions to mitigate.
 
 ## 6. rinse and repeat
 Go back to 3. until all issues are solved.
 
+
 From then on, you should have a saftey-net in place, that should prevent you from falling into that kind of trap in the future.
 
 >However, note that mapping **per-name** instead of **per-value** *might* have a negative impact, performance-wise. That should definetley be taken into account when applying this kind of change to your code-base. But with all those inter-layer-mappings present I would guess a possible bottleneck is in another castle, Mario ;)
 
+A full wrapup of the samples shown in this post can be found in this [github-repo][1]
 
 
-
-
-
-
-
+  [1]: https://github.com/earloc/Sample.AutoMapper.EnumValidation
